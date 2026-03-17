@@ -21,6 +21,7 @@ public class PresenceEventListener {
         this.chatService = chatService;
     }
 
+
     @EventListener
     public void handlePresenceEvent(UserPresenceEvent event) {
         UserPresence presence = event.getPresence();

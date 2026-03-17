@@ -1,9 +1,9 @@
 package com.minichat.auth.service;
 
-import com.minichat.auth.dto.AuthResponse;
-import com.minichat.auth.dto.LoginRequest;
-import com.minichat.auth.dto.RegisterRequest;
-import com.minichat.auth.dto.RegisterResponse;
+import com.minichat.auth.dto.response.AuthResponse;
+import com.minichat.auth.dto.request.LoginRequest;
+import com.minichat.auth.dto.request.RegisterRequest;
+import com.minichat.auth.dto.response.RegisterResponse;
 import com.minichat.auth.model.AppUser;
 import com.minichat.auth.model.Role;
 import com.minichat.auth.repository.AppUserRepository;
