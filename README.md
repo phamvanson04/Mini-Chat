@@ -1,23 +1,23 @@
 # Mini-Chat
 
-Mini-Chat la backend chat realtime xay dung bang Spring Boot, ho tro:
-- Xac thuc JWT (register, login, logout)
-- Chat public va chat theo room qua WebSocket/STOMP
-- Theo doi trang thai online/offline (presence + heartbeat)
-- Luu tru da nguon: MySQL (auth), MongoDB (chat room/message), Redis (presence cache)
-- Chay nhanh bang Docker Compose
+A realtime chat backend application built with Spring Boot, supporting:
+- JWT Authentication (register, login, logout)
+- Public and room-based chat via WebSocket/STOMP
+- Online/offline presence tracking with heartbeat mechanism
+- Multi-source data storage: MySQL (auth), MongoDB (chat rooms/messages), Redis (presence cache)
+- Fast deployment with Docker Compose
 
-## 1) Công Nghệ Sử Dụng
+## 1) Technology Stack
 
 ### Backend & Framework
-- ☕ **Java 21** — JDK mới nhất với feature virtual thread, record, pattern matching
-- 🌱 **Spring Boot 3.2.x** — Framework web chuẩn, auto-config, embedded server
-- 🔐 **Spring Security + JWT** — Xác thực, phân quyền, token-based auth không session
-- 🔌 **Spring WebSocket (STOMP + SockJS)** — Realtime 2-way communication, fallback cho old browser
+- ☕ **Java 21** — Latest JDK with virtual threads, records, pattern matching
+- 🌱 **Spring Boot 3.2.x** — Standard web framework, auto-config, embedded server
+- 🔐 **Spring Security + JWT** — Authentication, authorization, token-based auth (stateless)
+- 🔌 **Spring WebSocket (STOMP + SockJS)** — Realtime 2-way communication with fallback for older browsers
 
 ### Data Layer
 - 🗄️ **Spring Data JPA + Hibernate** — ORM, manage MySQL entities (User, Auth)
-- 🍃 **Spring Data MongoDB** — NoSQL stored documents (Chat message + Room)
+- 🍃 **Spring Data MongoDB** — NoSQL, store documents (Chat messages + Rooms)
 - 🔴 **Spring Data Redis** — In-memory cache, fast presence tracking
 - 🐬 **MySQL 8.4** — Relational DB, auth + user data
 - 🍀 **MongoDB 7** — Document DB, chat history + room metadata
@@ -25,22 +25,22 @@ Mini-Chat la backend chat realtime xay dung bang Spring Boot, ho tro:
 
 ### DevOps & Container
 - 🐳 **Docker** — Containerize app + dependencies
-- 🎭 **Docker Compose** — Orche multiple services (app, MySQL, MongoDB, Redis) cục bộ
-- 📦 **Maven 3.9** — Build tool, dependency management, multi-module support
+- 🎭 **Docker Compose** — Orchestrate multiple services (app, MySQL, MongoDB, Redis)
+- 📦 **Maven 3.9** — Build tool, dependency management
 
 ### Libraries & Tooling
-- 🪶 **Lombok** — Reduce boilerplate (getter/setter/constructor auto-gen)
-- 🔑 **JJWT 0.12.6** — JWT library, sign/verify token
-- 🧪 **JUnit 5 + Spring Boot Test** — Unit & integration test
+- 🪶 **Lombok** — Reduce boilerplate (auto-generate getters, setters, constructors)
+- 🔑 **JJWT 0.12.6** — JWT library for signing/verifying tokens
+- 🧪 **JUnit 5 + Spring Boot Test** — Unit & integration testing
 
-## 2) Kiến Trúc Tổng Quan
+## 2) Architecture Overview
 
 ```
 com.minichat/
 ├── auth/                    🔐 Authentication & Authorization
 │   ├── controller/          REST: /api/auth/register, login, logout
-│   ├── dto/                 Request/Response payload
-│   ├── model/               AppUser, Role entity
+│   ├── dto/                 Request/Response payloads
+│   ├── model/               AppUser, Role entities
 │   ├── repository/          JPA repository for users
 │   ├── security/            JWT filter, service, custom UserDetailsService
 │   └── service/             Auth business logic
@@ -49,9 +49,9 @@ com.minichat/
 │   ├── controller/          REST: /api/rooms, WebSocket: /app/...
 │   ├── dto/                 CreateRoomRequest, JoinRoomRequest, etc
 │   ├── event/               UserPresenceEvent (publish/subscribe)
-│   ├── listener/            Event listener, WebSocket listener
+│   ├── listener/            Event listeners, WebSocket listeners
 │   ├── model/               ChatMessage, ChatRoom, UserPresence, BaseEntity
-│   ├── repository/          MongoDB, MySQL, Redis repo
+│   ├── repository/          MongoDB, MySQL, Redis repositories
 │   └── service/             ChatService, RoomService, PresenceService
 │
 ├── config/                  ⚙️ Configuration
@@ -63,48 +63,48 @@ com.minichat/
     └── response/            BaseResponse, ResponseFactory
 ```
 
-## 3) Chức Năng Chính
+## 3) Core Features
 
 ### 🔐 JWT Authentication
-- `POST /api/auth/register` — Tạo tài khoản mới, hash password, lưu vào MySQL
-- `POST /api/auth/login` — Xác thực user, phát JWT token (24h TTL)
-- `POST /api/auth/logout` — Đánh dấu user offline, clear presence cache
+- `POST /api/auth/register` — Create new account, hash password, save to MySQL
+- `POST /api/auth/login` — Authenticate user, issue JWT token (24h TTL)
+- `POST /api/auth/logout` — Mark user offline, clear presence cache
 
-### 🏠 Quản Lý Room
-- `POST /api/rooms` — Tạo chat room, lưu metadata vào MongoDB
-- `POST /api/rooms/{roomId}/join` — User join room, thêm vào membership
-- `GET /api/rooms` — Danh sách tất cả room
-- `GET /api/rooms/{roomId}` — Chi tiết room (tên, members, created_at)
+### 🏠 Room Management
+- `POST /api/rooms` — Create chat room, persist metadata to MongoDB
+- `POST /api/rooms/{roomId}/join` — User joins room, add to membership
+- `GET /api/rooms` — List all rooms
+- `GET /api/rooms/{roomId}` — Get room details (name, members, created_at)
 
 ### 💬 Public Chat (Broadcast)
 - **WebSocket endpoint**: `/ws` (STOMP over SockJS)
-- **Send message**: `POST /app/chat.sendMessage` → broadcast `/topic/public`
-- **Join announcement**: `POST /app/chat.addUser` → broadcast `/topic/public`
-- User thấy tin/thông báo tức thì
+- **Send message**: `POST /app/chat.sendMessage` → broadcast to `/topic/public`
+- **Join announcement**: `POST /app/chat.addUser` → announce join to `/topic/public`
+- All connected users receive messages instantly
 
 ### 🎯 Room Chat (Scoped)
-- **Send to room**: `POST /app/room/{roomId}/send` → broadcast `/topic/rooms/{roomId}`
-- **Join room**: `POST /app/room/{roomId}/join` → announce join trong room topic
-- Message persistent lưu MongoDB
-- Chỉ user trong room thấy, không broadcast global
+- **Send to room**: `POST /app/room/{roomId}/send` → broadcast to `/topic/rooms/{roomId}`
+- **Join room**: `POST /app/room/{roomId}/join` → announce join within room topic
+- Messages persist in MongoDB
+- Only users in the room receive messages (not global broadcast)
 
 ### 👥 Presence & Heartbeat
-- **User online tracking**: Lưu presence record (username, timestamp) trên Redis
-- **Heartbeat**: Client gửi `POST /app/presence.heartbeat` định kỳ (mỗi 30s)
-- **Auto offline**: Nếu không heartbeat quá 30s → mark offline, trigger event
-- **Event listener**: Spring event listener publish UserPresenceEvent, notify web client
+- **User online tracking**: Store presence record (username, timestamp) in Redis
+- **Heartbeat**: Client sends `POST /app/presence.heartbeat` periodically (every 30s)
+- **Auto offline**: If no heartbeat for >30s → mark offline, trigger event
+- **Event listener**: Spring event listener publishes UserPresenceEvent, notifies web clients
 
-## 4) Chạy Local Không Docker
+## 4) Run Locally Without Docker
 
-### ✅ Yêu Cầu
+### ✅ Requirements
 - ☕ **Java 21 JDK**
 - 📦 **Maven 3.9+**
-- 🐬 **MySQL 8.x** chạy local
-- 🍀 **MongoDB 7.x** chạy local
-- ⚡ **Redis 7.x** chạy local
+- 🐬 **MySQL 8.x** running locally
+- 🍀 **MongoDB 7.x** running locally
+- ⚡ **Redis 7.x** running locally
 
-### ⚙️ Cấu Hình
-Mặc định trong `src/main/resources/application.yml`:
+### ⚙️ Configuration
+Default settings in `src/main/resources/application.yml`:
 ```yaml
 spring:
   datasource:
@@ -123,9 +123,9 @@ spring:
 ```bash
 mvn clean spring-boot:run
 ```
-App mặc định chạy tại: **http://localhost:8080**
+App runs by default at: **http://localhost:8080**
 
-## 5) Chạy Bằng Docker Compose
+## 5) Run with Docker Compose
 
 ### 🐳 Start Services
 ```bash
@@ -217,13 +217,13 @@ SERVER:
   - Auto clear offline after 30s timeout
 ```
 
-## 7) Cấu Trúc Thư Mục
+## 7) Directory Structure
 
 ```
 📁 mini-chat
-├── 📄 pom.xml                    Maven build config
+├── 📄 pom.xml                    Maven build configuration
 ├── 📄 Dockerfile                 Multi-stage build (Maven → JRE slim)
-├── 📄 docker-compose.yml         Orche 4 services
+├── 📄 docker-compose.yml         Orchestrate 4 services
 ├── 📄 README.md                  This file
 ├── 📄 .gitignore                 Ignore build, IDE, env files
 │
@@ -256,20 +256,20 @@ SERVER:
         └── response/
 ```
 
-## 8) 🔒 Ghi Chú Bảo Mật
+## 8) 🔒 Security Notes
 
-⚠️ **Cảnh báo**:
-- ❌ Không hard-code JWT secret, DB password trong `application.yml`
-- ✅ Sử dụng **environment variables** cho production:
+⚠️ **WARNING**:
+- ❌ Never hardcode JWT secret, DB password in `application.yml`
+- ✅ Use **environment variables** for production:
   ```bash
   export APP_JWT_SECRET=your-long-secret-key
   export SPRING_DATASOURCE_PASSWORD=your-db-password
   export SPRING_DATA_REDIS_PASSWORD=your-redis-password
   ```
-- ❌ Không commit `.env` file (thêm vào `.gitignore`)
-- ✅ Dùng Docker secrets or Kubernetes ConfigMap cho deploy production
+- ❌ Never commit `.env` file (add to `.gitignore`)
+- ✅ Use Docker secrets or Kubernetes ConfigMap for production deployments
 
-### JWT Token Config
+### JWT Token Configuration
 ```yaml
 app:
   jwt:
@@ -277,38 +277,38 @@ app:
     expiration-ms: 86400000  # 24 hours
 ```
 
-## 9) 🚀 Hướng Mở Rộng (Future Features)
+## 9) 🚀 Future Enhancements (Roadmap)
 
 ### 💾 Data & History
 - [ ] Persistent chat history + pagination (MongoDB query with limits)
 - [ ] Search messages by keyword/date range
 - [ ] Archive old messages
 
-### 📬 Advanced Chat
-- [ ] **Direct message** (1-on-1 private chat)
+### 📬 Advanced Chat Features
+- [ ] **Direct messaging** (1-on-1 private chat)
 - [ ] **Group chat** (multiple members per room)
 - [ ] **Message edit/delete** (soft delete + version tracking)
-- [ ] **Read receipt** (message seen status per user)
-- [ ] **typing indicator** (broadcast user is typing)
+- [ ] **Read receipts** (message seen status per user)
+- [ ] **Typing indicators** (broadcast when user is typing)
 
-### 👤 Presence & Status
+### 👤 Presence & User Status
 - [ ] User **custom status** (away, do not disturb, online)
-- [ ] **Per-room presence** (detailed who's in which room)
+- [ ] **Per-room presence** (detailed tracking of who's in which room)
 - [ ] Last seen timestamp (when user last logged in)
 
-### 🔔 Notifications
-- [ ] Push notification (Firebase Cloud Messaging)
-- [ ] Email alert for missed messages
+### 🔔 Notifications & Alerts
+- [ ] Push notifications (Firebase Cloud Messaging)
+- [ ] Email alerts for missed messages
 - [ ] In-app notification center
 
 ### 🎯 Moderation & Control
 - [ ] **Rate limiting** (max messages per user per minute)
 - [ ] **Mute/block users**
-- [ ] **Room admin** controls (ban, kick, permissions)
+- [ ] **Room admin controls** (ban, kick, permission management)
 - [ ] **Message audit log** (track edit/delete history)
 
 ### 📊 Analytics & Monitoring
-- [ ] User activity stats
+- [ ] User activity statistics
 - [ ] Message volume metrics
 - [ ] Performance monitoring (WebSocket connection count)
-- [ ] Error tracking (Sentry/DataDog)
+- [ ] Error tracking integration (Sentry/DataDog)
